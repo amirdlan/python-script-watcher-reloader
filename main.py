@@ -1,5 +1,6 @@
 import sys
 import time
+import string
 import logging
 import importlib.util
 import os.path
@@ -25,10 +26,35 @@ class MyHandler(PatternMatchingEventHandler):
         self.handle_event(event)
 
     def handle_event(self, event):
-        module_name = os.path.basename(event.src_path).rstrip('.py')
-        module = importlib.import_module('{}.{}'.format(genscripts_dir, module_name))
-        logging.debug('module {} {}'.format(module_name, module))
-        print('gen', module.generate())
+        module_name = os.path.basename(event.src_path).rsplit('.py', maxsplit=1)[0]
+        module_name = self.filter_module_letters(module_name)
+        module_path = '{}.{}'.format(genscripts_dir, module_name)
+
+        logging.debug('Module go load: {}'.format(module_path))
+        try:
+            if not self.is_module_loaded(module_path):
+                module = importlib.import_module(module_path)
+            else:
+                module = importlib.reload(sys.modules[module_path])
+
+        except SyntaxError as e:
+            logging.error('Syntax error in {}: {}'.format(module_path, e))
+            return
+        except ImportError as e:
+            logging.error('Import error for {}: {}'.format(module_path, e))
+            return
+
+        try:
+            logging.info("{} {} {}".format(module_name, event.event_type, module))
+            print(module.generate())
+        except AttributeError:
+            logging.warn('No `generate function in {}'.format(module_path))
+
+    def filter_module_letters(self, path):
+        return ''.join([c for c in path if c in string.ascii_letters])
+
+    def is_module_loaded(self, module):
+        return module in sys.modules.keys()
 
 
 if __name__ == "__main__":
