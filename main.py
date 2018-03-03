@@ -9,7 +9,7 @@ from watchdog.events import LoggingEventHandler, PatternMatchingEventHandler
 import genscripts
 
 
-genscripts_dir= 'genscripts'
+genscripts_dir = 'genscripts'
 
 
 class MyHandler(PatternMatchingEventHandler):
@@ -30,7 +30,7 @@ class MyHandler(PatternMatchingEventHandler):
         module_name = self.filter_module_letters(module_name)
         module_path = '{}.{}'.format(genscripts_dir, module_name)
 
-        logging.debug('Module go load: {}'.format(module_path))
+        logging.debug('Module to load: {}'.format(module_path))
         try:
             if not self.is_module_loaded(module_path):
                 module = importlib.import_module(module_path)
@@ -40,6 +40,7 @@ class MyHandler(PatternMatchingEventHandler):
         except SyntaxError as e:
             logging.error('Syntax error in {}: {}'.format(module_path, e))
             return
+        
         except ImportError as e:
             logging.error('Import error for {}: {}'.format(module_path, e))
             return
@@ -47,6 +48,7 @@ class MyHandler(PatternMatchingEventHandler):
         try:
             logging.info("{} {} {}".format(module_name, event.event_type, module))
             print(module.generate())
+            
         except AttributeError:
             logging.warn('No `generate function in {}'.format(module_path))
 
@@ -65,12 +67,15 @@ if __name__ == "__main__":
 
     my_handler = MyHandler(patterns=['*.py'])
     observer = Observer()
-    observer.schedule(my_handler,genscripts_dir)
+    observer.schedule(my_handler, genscripts_dir)
     observer.start()
+    
     try:
         logging.info("Running...")
         while True:
             time.sleep(1)
+            
     except KeyboardInterrupt:
         observer.stop()
+        
     observer.join()
